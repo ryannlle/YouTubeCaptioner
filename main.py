@@ -1,6 +1,7 @@
 import yt_dlp
 import whisper
 from transformers import pipeline
+from peft import PeftModel
 
 # Download audio from YouTube video
 
