@@ -9,5 +9,21 @@
     <h1> 
         YT Captioner
     </h1>
+    <h2>Enter a link to visit</h2>
+    <input type="text" id="userLink" placeholder="Enter URL (e.g. https://youtube.com)">
+    <button onclick="goToLink()">Go</button>
+    <script>
+    function goToLink() {
+      let url = document.getElementById("userLink").value;
+
+      // If user forgot "https://", add it automatically
+      if (!url.startsWith("http://") && !url.startsWith("https://")) {
+        url = "https://" + url;
+      }
+
+      // Navigate to the link
+      window.location.href = url;
+    }
+  </script>
 </body>
 </html>
