@@ -1,13 +1,73 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YT Captioner</title>
+  <meta charset="UTF-8">
+  <title>YouTube Embed Redirect</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to right, #74ebd5, #ACB6E5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+      text-align: center;
+      width: 350px;
+    }
+    input[type="text"] {
+      width: 90%;
+      padding: 12px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+    button {
+      background: #74ebd5;
+      border: none;
+      color: #fff;
+      padding: 12px 25px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: #5ec7b8;
+    }
+  </style>
 </head>
 <body>
-    <h1> 
-        YT Captioner
-    </h1>
+  <div class="container">
+    <h2>Enter a YouTube Link</h2>
+    <input type="text" id="userLink" placeholder="e.g. https://www.youtube.com/watch?v=qg4PchTECck">
+    <br>
+    <button onclick="goToVideo()">Go</button>
+  </div>
+
+  <script>
+    function goToVideo() {
+      let url = document.getElementById("userLink").value;
+
+      // Extract video ID from different YouTube URL formats
+      const regex = /(?:v=|\.be\/)([a-zA-Z0-9_-]{11})/;
+      const match = url.match(regex);
+
+      if (match && match[1]) {
+        const videoId = match[1];
+        // Redirect to player page with videoId as query parameter
+        window.location.href = "player.html?id=" + videoId;
+      } else {
+        alert("Please enter a valid YouTube link.");
+      }
+    }
+  </script>
 </body>
 </html>
