@@ -1,121 +1,118 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>YT Captioner</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(to right, #74ebd5, #ACB6E5);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-    }
-    .intro {
-      font-size: 2em;
-      font-weight: bold;
-      color: white;
-      animation: fadeIn 1s ease, fadeOut 1s ease 2s forwards;
-    }
-    @keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
-    @keyframes fadeOut { from {opacity:1;} to {opacity:0; visibility:hidden;} }
-
-    .container {
-      background: #fff;
-      padding: 30px;
-      border-radius: 15px;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-      text-align: center;
-      width: 350px;
-      display: none;
-    }
-    input[type="text"] {
-      width: 90%;
-      padding: 12px;
-      border: 2px solid #ddd;
-      border-radius: 8px;
-      font-size: 16px;
-      margin-bottom: 20px;
-    }
-    button {
-      background: #74ebd5;
-      border: none;
-      color: #fff;
-      padding: 12px 25px;
-      border-radius: 8px;
-      font-size: 16px;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-    button:hover { background: #5ec7b8; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Captioner Home</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #e0e0e0;
+            margin: 0;
+        }
+        .container {
+            background: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 90%;
+            max-width: 450px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        button {
+            background-color: #ff0000;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #cc0000;
+        }
+        #message {
+            margin-top: 15px;
+            color: #cc0000;
+        }
+    </style>
 </head>
 <body>
-  <div class="intro" id="intro">YT Captioner</div>
 
-  <div class="container" id="mainContainer">
-    <h2>Enter a YouTube Link</h2>
-    <input type="text" id="userLink" placeholder="e.g. https://www.youtube.com/watch?v=qg4PchTECck">
-    <br>
-    <button onclick="goToVideo()">Go</button>
-  </div>
+<div class="container">
+    <h1>YouTube Summarizer</h1>
+    <input type="text" id="userLink" placeholder="Paste YouTube URL here..." />
+    <input type="text" id="customPrompt" placeholder="Optional summarization prompt..." />
+    <button onclick="goToVideo()">Get Summary & Play</button>
+    <div id="message"></div>
+</div>
 
-  <script>
-    // Show main container after intro
-    setTimeout(() => {
-      document.getElementById("intro").style.display = "none";
-      document.getElementById("mainContainer").style.display = "block";
-    }, 3000);
+<script>
+    function extractVideoId(url) {
+        const regex = /(?:v=|\.be\/)([a-zA-Z0-9_-]{11})/;
+        const match = url.match(regex);
+        return match ? match[1] : null;
+    }
 
     async function goToVideo() {
-      const url = document.getElementById("userLink").value.trim();
-      if (!url) {
-        alert("Please enter a YouTube URL.");
-        return;
-      }
-
-      const videoId = extractVideoId(url);
-      if (!videoId) {
-        alert("Invalid YouTube URL format.");
-        return;
-      }
-
-      console.log("Sending URL to backend:", url);
-
-      try {
-        const response = await fetch("http://localhost:5000/api/summarize", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: url })
-        });
-
-        if (!response.ok) {
-          throw new Error(`Backend error: ${response.status}`);
+        const url = document.getElementById("userLink").value.trim();
+        const prompt = document.getElementById("customPrompt").value.trim();
+        const messageDiv = document.getElementById("message");
+        
+        if (!url) {
+            messageDiv.textContent = "Please enter a YouTube URL.";
+            return;
+        }
+        
+        const videoId = extractVideoId(url);
+        if (!videoId) {
+            messageDiv.textContent = "Invalid YouTube URL format.";
+            return;
         }
 
-        const data = await response.json();
-        console.log("Received summary from backend:", data.summary);
+        messageDiv.textContent = "Processing... this may take a moment.";
 
-        // Save summary and videoId to localStorage
-        localStorage.setItem("summary", data.summary);
-        localStorage.setItem("videoId", videoId);
+        try {
+            const response = await fetch("http://localhost:5000/api/summarize", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ url, prompt: prompt || null })
+            });
 
-        // Redirect to player.html
-        window.location.href = "player.html";
+            const data = await response.json();
 
-      } catch (err) {
-        console.error("Error fetching summary:", err);
-        alert("Failed to get summary. Check console for details.");
-      }
+            if(!response.ok) {
+                const errorMessage = data.error || `HTTP Error: ${response.status}`;
+                messageDiv.textContent = `Error: ${errorMessage}`;
+                return;
+            } 
+            
+            localStorage.setItem("summary", data.summary);
+            localStorage.setItem("videoId", videoId);
+
+            window.location.href = "player.html";
+
+        } catch(err) {
+            console.error(err);
+            messageDiv.textContent = "Failed to connect to the server or process the request.";
+        }
     }
+</script>
 
-    function extractVideoId(url) {
-      const regex = /(?:v=|\.be\/)([a-zA-Z0-9_-]{11})/;
-      const match = url.match(regex);
-      return match ? match[1] : null;
-    }
-  </script>
 </body>
 </html>
