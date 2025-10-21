@@ -1,26 +1,64 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import yt_dlp
 import whisper
-from transformers import pipeline
 import os
+import requests
+from openai import OpenAI
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
-# Initialize Hugging Face pipelines globally
-summarizer = pipeline("summarization", model="pszemraj/led-base-book-summary")
-caption_generator = pipeline("text2text-generation", model="google/flan-t5-base")
+# Initialize OpenAI client
+client = OpenAI()
 
-WHISPER_MODEL = whisper.load_model("base")  # load once globally
+# Load Whisper model globally
+WHISPER_MODEL = whisper.load_model("base")
 
-# ---------------- Audio & Transcription ----------------
+# ---------------- Path Setup ----------------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+HOMEPAGE_PATH = os.path.join(BASE_DIR, "..", "frontend", "homepage.html")
+PLAYER_PATH = os.path.join(BASE_DIR, "..", "frontend", "player.html")
+
+# ---------------- Helper Functions ----------------
+
+def get_youtube_transcript(url):
+    """Try to fetch YouTube captions first. Return None if not available."""
+    ydl_opts = {
+        "skip_download": True,
+        "writesubtitles": True,
+        "writeautomaticsub": True,
+        "subtitlesformat": "vtt",
+        "quiet": True,
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=False)
+        subtitles = info.get("requested_subtitles") or info.get("automatic_captions")
+        if not subtitles:
+            return None
+        # Pick English if available
+        sub_info = subtitles.get("en") or next(iter(subtitles.values()))
+        if not sub_info or "url" not in sub_info:
+            return None
+        r = requests.get(sub_info["url"])
+        return r.text
+
+def vtt_to_text(vtt_content):
+    """Convert VTT subtitle text to plain text."""
+    lines = vtt_content.splitlines()
+    text_lines = [line for line in lines if line and not line.startswith("WEBVTT") and "-->" not in line]
+    return " ".join(text_lines)
+
 def download_audio(url):
+    """Fallback: download audio if captions are not available."""
     ydl_opts = {
         "format": "bestaudio/best",
         "outtmpl": "yt_audio.%(ext)s",
         "quiet": True,
-        "extractor_args": {"youtube": {"player_client": ["android", "web"]}},
         "postprocessors": [
             {"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "192"},
         ],
@@ -30,54 +68,67 @@ def download_audio(url):
     return "yt_audio.mp3"
 
 def transcribe_audio(audio_file):
+    """Transcribe audio with Whisper."""
     result = WHISPER_MODEL.transcribe(audio_file)
     return result["text"]
 
-def process_with_llm(text, task="summarize", prompt=None):
-    if task == "summarize":
-        base_summary = summarizer(
-            text,
-            max_new_tokens=512,
-            min_length=120,
-            no_repeat_ngram_size=3,
-            do_sample=False,
-        )[0]["summary_text"]
+def process_with_gpt(text, task="summarize", prompt=None):
+    """Processes the transcript using GPT (Markdown-formatted output)."""
+    if task != "summarize":
+        raise ValueError("Only 'summarize' task is supported.")
 
-        if prompt:
-            generation_input = f"Instruction: {prompt}\n\nContext: {base_summary}\n\nRespond with a detailed answer."
-            refined = caption_generator(
-                generation_input,
-                max_new_tokens=256,
-                do_sample=False,
-            )[0]["generated_text"]
-            return refined
+    base_prompt = (
+        f"You are an expert at making educational study guides. "
+        f"Summarize the following transcript in a clean, readable format using Markdown with headings, bullet points, and examples:\n\n{text}"
+    )
 
-        return base_summary
-    elif task == "caption":
-        caption = caption_generator(f"Generate a caption: {text}", max_length=50)
-        return caption[0]['generated_text']
-    else:
-        raise ValueError("Invalid task. Use 'summarize' or 'caption'.")
+    if prompt:
+        base_prompt += f"\n\nAdditional instruction: {prompt}"
 
-# ---------------- Flask API ----------------
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",  # Make sure you have access to this model
+        messages=[{"role": "user", "content": base_prompt}],
+        max_tokens=800,
+    )
+
+    return response.choices[0].message.content.strip()
+
+# ---------------- Flask Routes ----------------
+@app.route("/")
+def home():
+    if not os.path.exists(HOMEPAGE_PATH):
+        return "Homepage not found!", 404
+    return send_file(HOMEPAGE_PATH)
+
+@app.route("/player")
+def player():
+    if not os.path.exists(PLAYER_PATH):
+        return "Player page not found!", 404
+    return send_file(PLAYER_PATH)
+
 @app.route("/api/summarize", methods=["POST"])
 def summarize():
     data = request.get_json()
     url = data.get("url")
-    custom_prompt = data.get("prompt")  # optional
+    custom_prompt = data.get("prompt")
 
     if not url:
         return jsonify({"error": "No YouTube URL provided."}), 400
 
     try:
-        audio_file = download_audio(url)
-        text = transcribe_audio(audio_file)
-        summary = process_with_llm(text, task="summarize", prompt=custom_prompt)
-        
-        # Cleanup audio file
-        if os.path.exists(audio_file):
-            os.remove(audio_file)
+        # Step 1: try captions
+        transcript = get_youtube_transcript(url)
+        if transcript:
+            text = vtt_to_text(transcript)
+        else:
+            # Step 2: fallback to Whisper transcription
+            audio_file = download_audio(url)
+            text = transcribe_audio(audio_file)
+            if os.path.exists(audio_file):
+                os.remove(audio_file)
 
+        # Step 3: summarize
+        summary = process_with_gpt(text, task="summarize", prompt=custom_prompt)
         return jsonify({"summary": summary})
 
     except Exception as e:
