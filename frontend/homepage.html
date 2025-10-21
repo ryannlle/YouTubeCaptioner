@@ -33,7 +33,7 @@
       position: absolute;
       width: 200%; height: 200%;
       top: -50%; left: -50%;
-      background: linear-gradient(45deg, #ff7a7a, #7a7aff, #7aff7a, #ff7aff);
+      background: linear-gradient(45deg, #897aff, #4646ed,#000dff, #00217b, #601bc7, #9029f1);
       background-size: 400% 400%;
       animation: moveGradient 15s ease infinite;
       opacity: 0.6;
@@ -77,11 +77,11 @@
       transition: border-color 0.2s ease;
     }
 
-    input[type="text"]:focus { border-color: #ff0000; }
+    input[type="text"]:focus { border-color: #000dff; }
 
     button {
-      background-color: #ff0000;
-      color: #fff;
+      background-color: #0044ff;
+      color: #ffffff;
       padding: 12px 28px;
       border: none;
       border-radius: 6px;
@@ -118,7 +118,7 @@
     <h1>YouTube Summarizer</h1>
     <input type="text" id="userLink" placeholder="Paste YouTube URL here..." />
     <input type="text" id="customPrompt" placeholder="Optional summarization prompt..." />
-    <button id="summarizeBtn">Get Summary & Play</button>
+    <button id="summarizeBtn">Summarize</button>
     <div id="message"></div>
   </div>
 
