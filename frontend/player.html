@@ -1,94 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>YT Captioner Player</title>
-    <!-- Include marked.js for rendering Markdown -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            background: #f5f5f5;
-            text-align: center;
-        }
-        button.back-btn {
-            background-color: #ff0000;
-            color: #fff;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 16px;
-            margin-bottom: 20px;
-            transition: background-color 0.3s;
-        }
-        button.back-btn:hover {
-            background-color: #cc0000;
-        }
-        iframe {
-            width: 100%;
-            max-width: 800px;
-            height: 450px;
-            border: none;
-            margin-top: 10px;
-        }
-        #summary {
-            margin-top: 20px;
-            background: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
-            text-align: left;
-        }
-        #summary h1, #summary h2, #summary h3 {
-            color: #ff0000;
-        }
-        #summary pre {
-            background: #f0f0f0;
-            padding: 10px;
-            border-radius: 6px;
-            overflow-x: auto;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>Video & Summary</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+      text-align: center;
+    }
+    button {
+      background-color: #ff0000;
+      color: #fff;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-bottom: 20px;
+      transition: background-color 0.3s;
+    }
+    button:hover { background-color: #cc0000; }
+    iframe {
+      width: 100%;
+      max-width: 800px;
+      height: 450px;
+      border: none;
+      margin-top: 10px;
+    }
+    #summary {
+      margin-top: 20px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+      text-align: left;
+    }
+    #summary h1, #summary h2, #summary h3 { color: #ff0000; }
+    #summary pre {
+      background: #f0f0f0;
+      padding: 10px;
+      border-radius: 6px;
+      overflow-x: auto;
+    }
+  </style>
 </head>
 <body>
-    <button class="back-btn" onclick="goBack()">← Back to Homepage</button>
-    <h1>Video & Summary</h1>
+  <button onclick="goBack()">← Back</button>
+  <button onclick="deleteSummary()">🗑️ Delete</button>
+  <h1>Video & Summary</h1>
+  <iframe id="ytPlayer" src="" allowfullscreen></iframe>
+  <div id="summary"></div>
 
-    <iframe id="ytPlayer" src="" allowfullscreen></iframe>
+  <script>
+    function goBack() {
+      window.location.href = "/";
+    }
 
-    <div id="summary"></div>
+    function deleteSummary() {
+      const current = JSON.parse(localStorage.getItem("currentSummary"));
+      let history = JSON.parse(localStorage.getItem("summaryHistory") || "[]");
+      history = history.filter(item => item.videoId !== current.videoId);
+      localStorage.setItem("summaryHistory", JSON.stringify(history));
+      alert("Summary deleted!");
+      goBack();
+    }
 
-    <script>
-        function goBack() {
-            window.location.href = "/";  // Redirect back to homepage
-        }
+    const current = JSON.parse(localStorage.getItem("currentSummary"));
+    const summaryDiv = document.getElementById("summary");
 
-        const summary = localStorage.getItem("summary");
-        const videoId = localStorage.getItem("videoId");
-        const summaryDiv = document.getElementById("summary");
-
-        if (!videoId) {
-            document.getElementById("ytPlayer").style.display = "none";
-            summaryDiv.innerHTML = "<h2>Error</h2><p>No video selected. Please go back to the homepage to enter a URL.</p>";
-        } else {
-            document.getElementById("ytPlayer").src = `https://www.youtube.com/embed/${videoId}`;
-            
-            if (summary) {
-                // Render GPT Markdown summary as HTML
-                summaryDiv.innerHTML = marked.parse(summary);
-            } else {
-                summaryDiv.innerHTML = "<h2>Summary</h2><p>No summary available.</p>";
-            }
-        }
-
-        // Optional: clear storage after displaying
-        // localStorage.removeItem("summary");
-        // localStorage.removeItem("videoId");
-    </script>
+    if (!current) {
+      document.getElementById("ytPlayer").style.display = "none";
+      summaryDiv.innerHTML = "<h2>Error</h2><p>No summary selected.</p>";
+    } else {
+      document.getElementById("ytPlayer").src = `https://www.youtube.com/embed/${current.videoId}`;
+      summaryDiv.innerHTML = marked.parse(current.content);
+    }
+  </script>
 </body>
 </html>
