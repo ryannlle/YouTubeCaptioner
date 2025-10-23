@@ -67,17 +67,35 @@ def transcribe_audio(audio_file):
 
 def process_with_gpt(text, prompt=None):
     base_prompt = (
-        f"You are an expert at making educational study guides. "
-        f"Summarize the following transcript in Markdown with headings, bullet points, and examples:\n\n{text}"
+        "You are an expert educator. Turn the following lecture transcript into a clear STUDY GUIDE.\n"
+        "The output **must** use Markdown with headings and bullet points — no paragraphs of plain text.\n\n"
+        "Follow this exact format:\n\n"
+        "## Overview\n"
+        "- One-sentence summary of the topic\n\n"
+        "## Key Concepts\n"
+        "- Main ideas explained simply\n"
+        "- Each key idea on its own bullet\n\n"
+        "## Detailed Notes\n"
+        "- Step-by-step bullet notes\n"
+        " - Use sub-bullets for examples or details\n\n"
+        "## Examples\n"
+        "- Real-world or practical examples (if applicable)\n\n"
+        "## Summary / Takeaways\n"
+        "- 4–6 short bullet points highlighting the key lessons\n\n"
+        "Make sure every list actually uses dash bullets ('-') and no numbered lists.\n\n"
+        f"Transcript:\n{text}"
     )
+
     if prompt:
-        base_prompt += f"\n\nAdditional instruction: {prompt}"
+        base_prompt += f"\n\nExtra instruction: {prompt}"
 
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[{"role": "user", "content": base_prompt}],
-        max_tokens=800,
+        max_tokens=1000,
+        temperature=0.7,
     )
+
     return response.choices[0].message.content.strip()
 
 @app.route("/")
