@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>YouTube Summarizer</title>
   <style>
-    /* -------- Reset & Base -------- */
     * { box-sizing: border-box; }
 
     body {
@@ -18,9 +17,10 @@
       background: #fff;
       position: relative;
       overflow: hidden;
+      flex-direction: column;
+      padding: 20px;
     }
 
-    /* -------- Animated Background -------- */
     .background-container {
       position: fixed;
       top: 0; left: 0;
@@ -33,17 +33,14 @@
       position: absolute;
       width: 200%; height: 200%;
       top: -50%; left: -50%;
-      background: linear-gradient(45deg, #897aff, #4646ed,#000dff, #00217b, #601bc7, #9029f1);
+      background: linear-gradient(45deg, #897aff, #4646ed, #000dff, #00217b, #601bc7, #9029f1);
       background-size: 400% 400%;
       animation: moveGradient 15s ease infinite;
       opacity: 0.6;
       border-radius: 50%;
     }
 
-    .bg-layer.layer2 {
-      animation-duration: 25s;
-      opacity: 0.4;
-    }
+    .bg-layer.layer2 { animation-duration: 25s; opacity: 0.4; }
 
     @keyframes moveGradient {
       0% { background-position: 0% 50%; }
@@ -51,7 +48,6 @@
       100% { background-position: 0% 50%; }
     }
 
-    /* -------- Main Container -------- */
     .container {
       position: relative;
       z-index: 10;
@@ -77,8 +73,6 @@
       transition: border-color 0.2s ease;
     }
 
-    input[type="text"]:focus { border-color: #000dff; }
-
     button {
       background-color: #0044ff;
       color: #ffffff;
@@ -90,36 +84,46 @@
       transition: background-color 0.3s;
       width: 100%;
     }
-
     button:hover { background-color: #cc0000; }
 
-    #message {
-      margin-top: 15px;
-      color: #cc0000;
-      font-weight: 500;
-      font-size: 15px;
+    #message { margin-top: 15px; color: #cc0000; font-weight: 500; font-size: 15px; }
+
+    .history {
+      margin-top: 25px;
+      text-align: left;
+      width: 100%;
     }
 
-    @media (max-width: 480px) {
-      h1 { font-size: 1.5rem; }
+    .history h2 { font-size: 1.2rem; color: #222; }
+    .history ul { list-style: none; padding: 0; margin: 0; }
+    .history li {
+      background: #f9f9f9;
+      margin: 6px 0;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.2s;
     }
+    .history li:hover { background: #e8e8ff; }
   </style>
 </head>
 <body>
-
-  <!-- Animated Background -->
   <div class="background-container">
     <div class="bg-layer layer1"></div>
     <div class="bg-layer layer2"></div>
   </div>
 
-  <!-- UI Container -->
   <div class="container">
     <h1>YouTube Summarizer</h1>
     <input type="text" id="userLink" placeholder="Paste YouTube URL here..." />
     <input type="text" id="customPrompt" placeholder="Optional summarization prompt..." />
     <button id="summarizeBtn">Summarize</button>
     <div id="message"></div>
+
+    <div class="history">
+      <h2>Previous Summaries</h2>
+      <ul id="historyList"></ul>
+    </div>
   </div>
 
   <script>
@@ -135,19 +139,11 @@
       const messageDiv = document.getElementById("message");
 
       messageDiv.textContent = "";
-
-      if (!url) {
-        messageDiv.textContent = "⚠️ Please enter a YouTube URL.";
-        return;
-      }
-
+      if (!url) return messageDiv.textContent = "⚠️ Please enter a YouTube URL.";
       const videoId = extractVideoId(url);
-      if (!videoId) {
-        messageDiv.textContent = "⚠️ Invalid YouTube URL format.";
-        return;
-      }
+      if (!videoId) return messageDiv.textContent = "⚠️ Invalid YouTube URL format.";
 
-      messageDiv.textContent = "⏳ Processing... this may take a minute.";
+      messageDiv.textContent = "⏳ Processing...";
 
       try {
         const response = await fetch("/api/summarize", {
@@ -155,26 +151,55 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ url, prompt: prompt || null }),
         });
-
         const data = await response.json();
 
-        if (!response.ok) {
-          const errorMessage = data.error || `HTTP Error: ${response.status}`;
-          messageDiv.textContent = `❌ ${errorMessage}`;
-          return;
-        }
+        if (!response.ok) throw new Error(data.error || "Server error");
 
-        localStorage.setItem("summary", data.summary);
-        localStorage.setItem("videoId", videoId);
+        const summary = {
+          videoId,
+          title: data.title || "Untitled Video",
+          content: data.summary,
+          date: new Date().toLocaleString(),
+        };
+
+        saveToHistory(summary);
+
+        localStorage.setItem("currentSummary", JSON.stringify(summary));
         window.location.href = "/player";
 
       } catch (err) {
         console.error(err);
-        messageDiv.textContent = "❌ Failed to connect to the server or process the request.";
+        messageDiv.textContent = "❌ Failed to summarize video.";
       }
     }
 
+    function saveToHistory(summary) {
+      const history = JSON.parse(localStorage.getItem("summaryHistory") || "[]");
+      const existingIndex = history.findIndex(item => item.videoId === summary.videoId);
+      if (existingIndex !== -1) history.splice(existingIndex, 1);
+      history.unshift(summary);
+      localStorage.setItem("summaryHistory", JSON.stringify(history));
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const history = JSON.parse(localStorage.getItem("summaryHistory") || "[]");
+      const list = document.getElementById("historyList");
+      list.innerHTML = "";
+
+      history.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = `${item.title} — ${item.date}`;
+        li.onclick = () => {
+          localStorage.setItem("currentSummary", JSON.stringify(item));
+          window.location.href = "/player";
+        };
+        list.appendChild(li);
+      });
+    }
+
     document.getElementById("summarizeBtn").addEventListener("click", handleSummarize);
+    renderHistory();
   </script>
 </body>
 </html>
