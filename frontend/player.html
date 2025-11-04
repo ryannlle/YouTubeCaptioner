@@ -5,57 +5,151 @@
   <title>Video & Summary</title>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
+    * { box-sizing: border-box; }
+
     body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background: #f5f5f5;
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: linear-gradient(to bottom right, #182c61, #0d1c3d);
+      color: #fff;
       text-align: center;
+      padding: 30px;
+      min-height: 100vh;
+      overflow: hidden;
     }
+
+    canvas#squares {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
+
+    h1 {
+      font-size: 2rem;
+      color: #ffffff;
+      margin-bottom: 20px;
+    }
+
     button {
-      background-color: #ff0000;
+      background: linear-gradient(135deg, #1769ff, #00c0ff);
+      background-size: 200% 200%;
       color: #fff;
       padding: 10px 20px;
       border: none;
       border-radius: 6px;
       cursor: pointer;
       font-size: 16px;
-      margin-bottom: 20px;
-      transition: background-color 0.3s;
+      margin: 10px;
+      transition: background-position 0.3s ease, transform 0.2s ease;
     }
-    button:hover { background-color: #cc0000; }
+
+    button:hover {
+      background-position: right center;
+      transform: scale(1.05);
+    }
+
     iframe {
       width: 100%;
       max-width: 800px;
       height: 450px;
       border: none;
-      margin-top: 10px;
+      border-radius: 12px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+      margin-top: 15px;
     }
+
     #summary {
-      margin-top: 20px;
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-      max-width: 800px;
+      margin-top: 25px;
+      background: rgba(15, 20, 50, 0.95);
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      max-width: 850px;
       margin-left: auto;
       margin-right: auto;
       text-align: left;
+      color: #e0e6ff;
     }
-    #summary h1, #summary h2, #summary h3 { color: #ff0000; }
+
+    #summary h1, #summary h2, #summary h3 {
+      color: #00c0ff;
+    }
+
     #summary pre {
-      background: #f0f0f0;
+      background: #1b2a56;
       padding: 10px;
       border-radius: 6px;
       overflow-x: auto;
+      color: #d7e0ff;
     }
   </style>
 </head>
 <body>
-  <button onclick="goBack()">← Back</button>
-  <button onclick="deleteSummary()">🗑️ Delete</button>
-  <h1>Video & Summary</h1>
-  <iframe id="ytPlayer" src="" allowfullscreen></iframe>
-  <div id="summary"></div>
+
+  <canvas id="squares"></canvas>
+
+  <div>
+    <button onclick="goBack()">← Back</button>
+    <button onclick="deleteSummary()">🗑️ Delete</button>
+    <h1>Video & Summary</h1>
+    <iframe id="ytPlayer" src="" allowfullscreen></iframe>
+    <div id="summary"></div>
+  </div>
+
+  <script>
+    // Floating square animation background
+    const canvas = document.getElementById("squares");
+    const ctx = canvas.getContext("2d");
+    let w, h;
+    let squares = [];
+
+    function resize() {
+      w = canvas.width = window.innerWidth;
+      h = canvas.height = window.innerHeight;
+    }
+
+    function createSquares(num) {
+      squares = [];
+      for (let i = 0; i < num; i++) {
+        squares.push({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          size: Math.random() * 8 + 3,
+          speedX: (Math.random() - 0.5) * 1.2,
+          speedY: (Math.random() - 0.5) * 1.2,
+          opacity: Math.random() * 0.4 + 0.1
+        });
+      }
+    }
+
+    function drawSquares() {
+      ctx.clearRect(0, 0, w, h);
+      for (let sq of squares) {
+        ctx.beginPath();
+        ctx.rect(sq.x, sq.y, sq.size, sq.size);
+        ctx.fillStyle = `rgba(255,255,255,${sq.opacity})`;
+        ctx.fill();
+
+        sq.x += sq.speedX;
+        sq.y += sq.speedY;
+
+        if (sq.x < 0 || sq.x > w) sq.speedX *= -1;
+        if (sq.y < 0 || sq.y > h) sq.speedY *= -1;
+      }
+      requestAnimationFrame(drawSquares);
+    }
+
+    window.addEventListener('resize', () => {
+      resize();
+      createSquares(250);
+    });
+
+    resize();
+    createSquares(250);
+    drawSquares();
+  </script>
 
   <script>
     function goBack() {
@@ -82,5 +176,6 @@
       summaryDiv.innerHTML = marked.parse(current.content);
     }
   </script>
+
 </body>
 </html>
