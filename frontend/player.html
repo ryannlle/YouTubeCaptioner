@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Video & Summary</title>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     * { box-sizing: border-box; }
 
@@ -15,7 +16,7 @@
       text-align: center;
       padding: 30px;
       min-height: 100vh;
-      overflow: hidden;
+      overflow-y: auto; /* Enable scrolling */
     }
 
     canvas#squares {
@@ -93,6 +94,7 @@
   <div>
     <button onclick="goBack()">← Back</button>
     <button onclick="deleteSummary()">🗑️ Delete</button>
+    <button onclick="downloadPDF()">📄 Download PDF</button>
     <h1>Video & Summary</h1>
     <iframe id="ytPlayer" src="" allowfullscreen></iframe>
     <div id="summary"></div>
@@ -175,7 +177,35 @@
       document.getElementById("ytPlayer").src = `https://www.youtube.com/embed/${current.videoId}`;
       summaryDiv.innerHTML = marked.parse(current.content);
     }
-  </script>
 
+    // PDF Download Function
+    async function downloadPDF() {
+      const { jsPDF } = window.jspdf;
+      if (!current) {
+        alert("No summary to download.");
+        return;
+      }
+
+      const doc = new jsPDF({ unit: "pt", format: "letter" });
+      const margin = 40;
+      const maxWidth = 520;
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(18);
+      doc.text(current.title || "Video Summary", margin, 50);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(12);
+      doc.text(`Date: ${current.date || new Date().toLocaleString()}`, margin, 75);
+      doc.text(`Video ID: ${current.videoId}`, margin, 90);
+
+      const content = current.content.replace(/\*\*(.*?)\*\*/g, "$1"); // remove Markdown bold
+      const lines = doc.splitTextToSize(content, maxWidth);
+      doc.text(lines, margin, 120);
+
+      const fileName = `${(current.title || "summary").replace(/[^\w\s-]/g, "")}.pdf`;
+      doc.save(fileName);
+    }
+  </script>
 </body>
 </html>
