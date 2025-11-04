@@ -2,204 +2,256 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>YouTube Summarizer</title>
   <style>
     * { box-sizing: border-box; }
 
     body {
-      font-family: "Segoe UI", Arial, sans-serif;
       margin: 0;
-      min-height: 100vh;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: linear-gradient(to bottom right, #182c61, #0d1c3d);
+      color: #fff;
+      height: 100vh;
+      overflow: hidden;
       display: flex;
       justify-content: center;
       align-items: center;
-      background: #fff;
-      position: relative;
-      overflow: hidden;
-      flex-direction: column;
-      padding: 20px;
     }
 
-    .background-container {
+    canvas#squares {
       position: fixed;
       top: 0; left: 0;
-      width: 100%; height: 100%;
+      width: 100%;
+      height: 100%;
       z-index: -1;
-      overflow: hidden;
-    }
-
-    .bg-layer {
-      position: absolute;
-      width: 200%; height: 200%;
-      top: -50%; left: -50%;
-      background: linear-gradient(45deg, #897aff, #4646ed, #000dff, #00217b, #601bc7, #9029f1);
-      background-size: 400% 400%;
-      animation: moveGradient 15s ease infinite;
-      opacity: 0.6;
-      border-radius: 50%;
-    }
-
-    .bg-layer.layer2 { animation-duration: 25s; opacity: 0.4; }
-
-    @keyframes moveGradient {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
     }
 
     .container {
-      position: relative;
-      z-index: 10;
-      background: rgba(255, 255, 255, 0.96);
-      padding: 35px 30px;
-      border-radius: 12px;
-      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1);
-      text-align: center;
+      background-color: rgba(15, 20, 50, 0.9);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      padding: 40px;
       width: 90%;
-      max-width: 480px;
+      max-width: 500px;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
-    h1 { margin-top: 0; font-size: 1.8rem; color: #333; margin-bottom: 1rem; }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 20px;
+      color: #ffffff;
+    }
 
     input[type="text"] {
       width: 100%;
-      padding: 12px 14px;
-      margin-bottom: 12px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      border: none;
+      background: #1a274f;
+      color: white;
       font-size: 16px;
-      outline: none;
-      transition: border-color 0.2s ease;
     }
 
     button {
-      background-color: #0044ff;
-      color: #ffffff;
-      padding: 12px 28px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 16px;
-      transition: background-color 0.3s;
       width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #1769ff, #00c0ff);
+      background-size: 200% 200%;
+      color: white;
+      cursor: pointer;
+      transition: background-position 0.3s ease, transform 0.2s ease;
     }
-    button:hover { background-color: #cc0000; }
 
-    #message { margin-top: 15px; color: #cc0000; font-weight: 500; font-size: 15px; }
+    button:hover {
+      background-position: right center;
+      transform: scale(1.03);
+    }
+
+    #message {
+      margin-top: 10px;
+      color: #ffaaaa;
+      font-size: 14px;
+    }
 
     .history {
-      margin-top: 25px;
+      margin-top: 30px;
       text-align: left;
-      width: 100%;
     }
 
-    .history h2 { font-size: 1.2rem; color: #222; }
-    .history ul { list-style: none; padding: 0; margin: 0; }
+    .history h2 {
+      font-size: 1.2rem;
+      margin-bottom: 10px;
+      color: #ccc;
+    }
+
+    .history ul {
+      list-style: none;
+      padding: 0;
+    }
+
     .history li {
-      background: #f9f9f9;
-      margin: 6px 0;
-      padding: 8px 12px;
+      background: #1a274f;
+      padding: 8px;
+      margin-bottom: 8px;
       border-radius: 6px;
       cursor: pointer;
-      transition: background-color 0.2s;
+      color: #ddd;
     }
-    .history li:hover { background: #e8e8ff; }
+
+    .history li:hover {
+      background: #283566;
+    }
   </style>
 </head>
 <body>
-  <div class="background-container">
-    <div class="bg-layer layer1"></div>
-    <div class="bg-layer layer2"></div>
+
+<canvas id="squares"></canvas>
+
+<div class="container">
+  <h1>YouTube Summarizer</h1>
+  <input type="text" id="userLink" placeholder="Paste YouTube URL here..." />
+  <input type="text" id="customPrompt" placeholder="Optional summarization prompt..." />
+  <button id="summarizeBtn">Summarize</button>
+  <div id="message"></div>
+
+  <div class="history">
+    <h2>Previous Summaries</h2>
+    <ul id="historyList"></ul>
   </div>
+</div>
 
-  <div class="container">
-    <h1>YouTube Summarizer</h1>
-    <input type="text" id="userLink" placeholder="Paste YouTube URL here..." />
-    <input type="text" id="customPrompt" placeholder="Optional summarization prompt..." />
-    <button id="summarizeBtn">Summarize</button>
-    <div id="message"></div>
+<script>
+  // Dense floating squares animation
+  const canvas = document.getElementById("squares");
+  const ctx = canvas.getContext("2d");
+  let w, h;
+  let squares = [];
 
-    <div class="history">
-      <h2>Previous Summaries</h2>
-      <ul id="historyList"></ul>
-    </div>
-  </div>
+  function resize() {
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+  }
 
-  <script>
-    function extractVideoId(url) {
-      const regex = /(?:v=|\.be\/)([a-zA-Z0-9_-]{11})/;
-      const match = url.match(regex);
-      return match ? match[1] : null;
-    }
-
-    async function handleSummarize() {
-      const url = document.getElementById("userLink").value.trim();
-      const prompt = document.getElementById("customPrompt").value.trim();
-      const messageDiv = document.getElementById("message");
-
-      messageDiv.textContent = "";
-      if (!url) return messageDiv.textContent = "⚠️ Please enter a YouTube URL.";
-      const videoId = extractVideoId(url);
-      if (!videoId) return messageDiv.textContent = "⚠️ Invalid YouTube URL format.";
-
-      messageDiv.textContent = "⏳ Processing...";
-
-      try {
-        const response = await fetch("/api/summarize", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url, prompt: prompt || null }),
-        });
-        const data = await response.json();
-
-        if (!response.ok) throw new Error(data.error || "Server error");
-
-        const summary = {
-          videoId,
-          title: data.title || "Untitled Video",
-          content: data.summary,
-          date: new Date().toLocaleString(),
-        };
-
-        saveToHistory(summary);
-
-        localStorage.setItem("currentSummary", JSON.stringify(summary));
-        window.location.href = "/player";
-
-      } catch (err) {
-        console.error(err);
-        messageDiv.textContent = "❌ Failed to summarize video.";
-      }
-    }
-
-    function saveToHistory(summary) {
-      const history = JSON.parse(localStorage.getItem("summaryHistory") || "[]");
-      const existingIndex = history.findIndex(item => item.videoId === summary.videoId);
-      if (existingIndex !== -1) history.splice(existingIndex, 1);
-      history.unshift(summary);
-      localStorage.setItem("summaryHistory", JSON.stringify(history));
-      renderHistory();
-    }
-
-    function renderHistory() {
-      const history = JSON.parse(localStorage.getItem("summaryHistory") || "[]");
-      const list = document.getElementById("historyList");
-      list.innerHTML = "";
-
-      history.forEach(item => {
-        const li = document.createElement("li");
-        li.textContent = `${item.title} — ${item.date}`;
-        li.onclick = () => {
-          localStorage.setItem("currentSummary", JSON.stringify(item));
-          window.location.href = "/player";
-        };
-        list.appendChild(li);
+  function createSquares(num) {
+    squares = [];
+    for (let i = 0; i < num; i++) {
+      squares.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        size: Math.random() * 8 + 3,
+        speedX: (Math.random() - 0.5) * 1.2,
+        speedY: (Math.random() - 0.5) * 1.2,
+        opacity: Math.random() * 0.4 + 0.1
       });
     }
+  }
 
-    document.getElementById("summarizeBtn").addEventListener("click", handleSummarize);
+  function drawSquares() {
+    ctx.clearRect(0, 0, w, h);
+    for (let sq of squares) {
+      ctx.beginPath();
+      ctx.rect(sq.x, sq.y, sq.size, sq.size);
+      ctx.fillStyle = `rgba(255,255,255,${sq.opacity})`;
+      ctx.fill();
+
+      sq.x += sq.speedX;
+      sq.y += sq.speedY;
+
+      if (sq.x < 0 || sq.x > w) sq.speedX *= -1;
+      if (sq.y < 0 || sq.y > h) sq.speedY *= -1;
+    }
+    requestAnimationFrame(drawSquares);
+  }
+
+  window.addEventListener('resize', () => {
+    resize();
+    createSquares(300); // More squares
+  });
+
+  resize();
+  createSquares(300); // Increased from 100 to 300
+  drawSquares();
+</script>
+
+<script>
+  function extractVideoId(url) {
+    const regex = /(?:v=|\.be\/)([a-zA-Z0-9_-]{11})/;
+    const match = url.match(regex);
+    return match ? match[1] : null;
+  }
+
+  async function handleSummarize() {
+    const url = document.getElementById("userLink").value.trim();
+    const prompt = document.getElementById("customPrompt").value.trim();
+    const messageDiv = document.getElementById("message");
+
+    messageDiv.textContent = "";
+    if (!url) return messageDiv.textContent = "⚠️ Please enter a YouTube URL.";
+    const videoId = extractVideoId(url);
+    if (!videoId) return messageDiv.textContent = "⚠️ Invalid YouTube URL format.";
+
+    messageDiv.textContent = "⏳ Processing...";
+
+    try {
+      const response = await fetch("/api/summarize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, prompt: prompt || null }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) throw new Error(data.error || "Server error");
+
+      const summary = {
+        videoId,
+        title: data.title || "Untitled Video",
+        content: data.summary,
+        date: new Date().toLocaleString(),
+      };
+
+      saveToHistory(summary);
+      localStorage.setItem("currentSummary", JSON.stringify(summary));
+      window.location.href = "/player";
+
+    } catch (err) {
+      console.error(err);
+      messageDiv.textContent = "❌ Failed to summarize video.";
+    }
+  }
+
+  function saveToHistory(summary) {
+    const history = JSON.parse(localStorage.getItem("summaryHistory") || "[]");
+    const existingIndex = history.findIndex(item => item.videoId === summary.videoId);
+    if (existingIndex !== -1) history.splice(existingIndex, 1);
+    history.unshift(summary);
+    localStorage.setItem("summaryHistory", JSON.stringify(history));
     renderHistory();
-  </script>
+  }
+
+  function renderHistory() {
+    const history = JSON.parse(localStorage.getItem("summaryHistory") || "[]");
+    const list = document.getElementById("historyList");
+    list.innerHTML = "";
+
+    history.forEach(item => {
+      const li = document.createElement("li");
+      li.textContent = `${item.title} — ${item.date}`;
+      li.onclick = () => {
+        localStorage.setItem("currentSummary", JSON.stringify(item));
+        window.location.href = "/player";
+      };
+      list.appendChild(li);
+    });
+  }
+
+  document.getElementById("summarizeBtn").addEventListener("click", handleSummarize);
+  renderHistory();
+</script>
 </body>
 </html>
