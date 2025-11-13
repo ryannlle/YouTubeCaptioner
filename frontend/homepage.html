@@ -44,7 +44,7 @@
       color: #ffffff;
     }
 
-    input[type="text"] {
+    input[type="text"], select {
       width: 100%;
       padding: 12px;
       margin-bottom: 15px;
@@ -117,6 +117,15 @@
   <h1>YouTube Summarizer</h1>
   <input type="text" id="userLink" placeholder="Paste YouTube URL here..." />
   <input type="text" id="customPrompt" placeholder="Optional summarization prompt..." />
+
+
+  <select id="languageSelect">
+    <option value="English" selected>English</option>
+    <option value="Spanish">Spanish</option>
+    <option value="French">French</option>
+    <option value="Chinese">Chinese</option>
+  </select>
+
   <button id="summarizeBtn">Summarize</button>
   <div id="message"></div>
 
@@ -127,7 +136,7 @@
 </div>
 
 <script>
-  // Dense floating squares animation
+  
   const canvas = document.getElementById("squares");
   const ctx = canvas.getContext("2d");
   let w, h;
@@ -171,11 +180,11 @@
 
   window.addEventListener('resize', () => {
     resize();
-    createSquares(300); // More squares
+    createSquares(300);
   });
 
   resize();
-  createSquares(300); // Increased from 100 to 300
+  createSquares(300);
   drawSquares();
 </script>
 
@@ -189,6 +198,7 @@
   async function handleSummarize() {
     const url = document.getElementById("userLink").value.trim();
     const prompt = document.getElementById("customPrompt").value.trim();
+    const language = document.getElementById("languageSelect").value;
     const messageDiv = document.getElementById("message");
 
     messageDiv.textContent = "";
@@ -202,7 +212,7 @@
       const response = await fetch("/api/summarize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, prompt: prompt || null }),
+        body: JSON.stringify({ url, prompt: prompt || null, language }),
       });
       const data = await response.json();
 
@@ -213,6 +223,7 @@
         title: data.title || "Untitled Video",
         content: data.summary,
         date: new Date().toLocaleString(),
+        language, 
       };
 
       saveToHistory(summary);
