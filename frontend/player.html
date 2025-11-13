@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <title>Video & Summary</title>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     * { box-sizing: border-box; }
-
     body {
       margin: 0;
       font-family: "Segoe UI", Arial, sans-serif;
@@ -16,23 +16,9 @@
       text-align: center;
       padding: 30px;
       min-height: 100vh;
-      overflow-y: auto; /* Enable scrolling */
+      overflow-y: auto;
     }
-
-    canvas#squares {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: -1;
-    }
-
-    h1 {
-      font-size: 2rem;
-      color: #ffffff;
-      margin-bottom: 20px;
-    }
-
+    h1 { font-size: 2rem; margin-bottom: 20px; }
     button {
       background: linear-gradient(135deg, #1769ff, #00c0ff);
       background-size: 200% 200%;
@@ -45,12 +31,10 @@
       margin: 10px;
       transition: background-position 0.3s ease, transform 0.2s ease;
     }
-
     button:hover {
       background-position: right center;
       transform: scale(1.05);
     }
-
     iframe {
       width: 100%;
       max-width: 800px;
@@ -60,7 +44,6 @@
       box-shadow: 0 8px 25px rgba(0,0,0,0.4);
       margin-top: 15px;
     }
-
     #summary {
       margin-top: 25px;
       background: rgba(15, 20, 50, 0.95);
@@ -73,11 +56,9 @@
       text-align: left;
       color: #e0e6ff;
     }
-
     #summary h1, #summary h2, #summary h3 {
       color: #00c0ff;
     }
-
     #summary pre {
       background: #1b2a56;
       padding: 10px;
@@ -89,123 +70,78 @@
 </head>
 <body>
 
-  <canvas id="squares"></canvas>
+<div>
+  <button onclick="goBack()">← Back</button>
+  <button onclick="deleteSummary()">🗑️ Delete</button>
+  <button onclick="downloadScreenshot()">⬇️ Download</button>
+  <h1>Video & Summary</h1>
+  <iframe id="ytPlayer" src="" allowfullscreen></iframe>
+  <div id="summary"></div>
+</div>
 
-  <div>
-    <button onclick="goBack()">← Back</button>
-    <button onclick="deleteSummary()">🗑️ Delete</button>
-    <button onclick="downloadPDF()">📄 Download PDF</button>
-    <h1>Video & Summary</h1>
-    <iframe id="ytPlayer" src="" allowfullscreen></iframe>
-    <div id="summary"></div>
-  </div>
+<script>
+  function goBack() {
+    window.location.href = "/";
+  }
 
-  <script>
-    // Floating square animation background
-    const canvas = document.getElementById("squares");
-    const ctx = canvas.getContext("2d");
-    let w, h;
-    let squares = [];
-
-    function resize() {
-      w = canvas.width = window.innerWidth;
-      h = canvas.height = window.innerHeight;
-    }
-
-    function createSquares(num) {
-      squares = [];
-      for (let i = 0; i < num; i++) {
-        squares.push({
-          x: Math.random() * w,
-          y: Math.random() * h,
-          size: Math.random() * 8 + 3,
-          speedX: (Math.random() - 0.5) * 1.2,
-          speedY: (Math.random() - 0.5) * 1.2,
-          opacity: Math.random() * 0.4 + 0.1
-        });
-      }
-    }
-
-    function drawSquares() {
-      ctx.clearRect(0, 0, w, h);
-      for (let sq of squares) {
-        ctx.beginPath();
-        ctx.rect(sq.x, sq.y, sq.size, sq.size);
-        ctx.fillStyle = `rgba(255,255,255,${sq.opacity})`;
-        ctx.fill();
-
-        sq.x += sq.speedX;
-        sq.y += sq.speedY;
-
-        if (sq.x < 0 || sq.x > w) sq.speedX *= -1;
-        if (sq.y < 0 || sq.y > h) sq.speedY *= -1;
-      }
-      requestAnimationFrame(drawSquares);
-    }
-
-    window.addEventListener('resize', () => {
-      resize();
-      createSquares(250);
-    });
-
-    resize();
-    createSquares(250);
-    drawSquares();
-  </script>
-
-  <script>
-    function goBack() {
-      window.location.href = "/";
-    }
-
-    function deleteSummary() {
-      const current = JSON.parse(localStorage.getItem("currentSummary"));
-      let history = JSON.parse(localStorage.getItem("summaryHistory") || "[]");
-      history = history.filter(item => item.videoId !== current.videoId);
-      localStorage.setItem("summaryHistory", JSON.stringify(history));
-      alert("Summary deleted!");
-      goBack();
-    }
-
+  function deleteSummary() {
     const current = JSON.parse(localStorage.getItem("currentSummary"));
-    const summaryDiv = document.getElementById("summary");
+    let history = JSON.parse(localStorage.getItem("summaryHistory") || "[]");
+    history = history.filter(item => item.videoId !== current.videoId);
+    localStorage.setItem("summaryHistory", JSON.stringify(history));
+    alert("Summary deleted!");
+    goBack();
+  }
 
-    if (!current) {
-      document.getElementById("ytPlayer").style.display = "none";
-      summaryDiv.innerHTML = "<h2>Error</h2><p>No summary selected.</p>";
-    } else {
-      document.getElementById("ytPlayer").src = `https://www.youtube.com/embed/${current.videoId}`;
-      summaryDiv.innerHTML = marked.parse(current.content);
+  const current = JSON.parse(localStorage.getItem("currentSummary"));
+  const summaryDiv = document.getElementById("summary");
+
+  if (!current) {
+    document.getElementById("ytPlayer").style.display = "none";
+    summaryDiv.innerHTML = "<h2>Error</h2><p>No summary selected.</p>";
+  } else {
+    document.getElementById("ytPlayer").src = `https://www.youtube.com/embed/${current.videoId}`;
+    summaryDiv.innerHTML = `
+      <h3>Summary Language: ${current.language || "Unknown"}</h3>
+      ${marked.parse(current.content)}
+    `;
+  }
+
+  function downloadScreenshot() {
+    const { jsPDF } = window.jspdf;
+    const summaryDiv = document.getElementById("summary");
+    if (!summaryDiv) {
+      alert("No summary found.");
+      return;
     }
 
-    // PDF Download Function
-    async function downloadPDF() {
-      const { jsPDF } = window.jspdf;
-      if (!current) {
-        alert("No summary to download.");
-        return;
+    html2canvas(summaryDiv, {
+      scale: 2,
+      useCORS: true
+    }).then(canvas => {
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "pt", "letter");
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pageWidth - 80;
+      const imgHeight = canvas.height * (imgWidth / canvas.width);
+      const x = 40;
+      const y = 60;
+
+      if (imgHeight > pageHeight - 100) {
+        const ratio = (pageHeight - 100) / imgHeight;
+        pdf.addImage(imgData, "PNG", x, y, imgWidth * ratio, imgHeight * ratio);
+      } else {
+        pdf.addImage(imgData, "PNG", x, y, imgWidth, imgHeight);
       }
 
-      const doc = new jsPDF({ unit: "pt", format: "letter" });
-      const margin = 40;
-      const maxWidth = 520;
+      pdf.save("download.pdf");
+    }).catch(err => {
+      console.error("Screenshot failed:", err);
+      alert("Failed to download.");
+    });
+  }
+</script>
 
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(18);
-      doc.text(current.title || "Video Summary", margin, 50);
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(12);
-      doc.text(`Date: ${current.date || new Date().toLocaleString()}`, margin, 75);
-      doc.text(`Video ID: ${current.videoId}`, margin, 90);
-
-      const content = current.content.replace(/\*\*(.*?)\*\*/g, "$1"); // remove Markdown bold
-      const lines = doc.splitTextToSize(content, maxWidth);
-      doc.text(lines, margin, 120);
-
-      const fileName = `${(current.title || "summary").replace(/[^\w\s-]/g, "")}.pdf`;
-      doc.save(fileName);
-    }
-  </script>
 </body>
 </html>
