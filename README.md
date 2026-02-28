@@ -149,7 +149,3 @@ Accepts a YouTube URL and returns an AI-generated study guide.
 3. **Whisper fallback** — If no captions are available, the app downloads the best available audio stream, converts it to MP3 via FFmpeg, and runs it through OpenAI's Whisper `base` model for transcription. The temporary audio file is cleaned up afterward.
 
 4. **GPT summarization** — The transcript is sent to GPT-4o-mini with a structured prompt that produces a study guide in Markdown format. The prompt enforces a consistent structure (Overview, Key Concepts, Detailed Notes, Examples, Summary/Takeaways) and respects the user's language choice and any custom instructions.
-
-## License
-
-This project is open source. See the repository for license details.
